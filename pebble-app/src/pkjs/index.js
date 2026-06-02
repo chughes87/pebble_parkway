@@ -48,6 +48,20 @@ function parseShowtimes(html) {
     results.push({ title: title, time: time, imdb_url: imdbMatch[1] });
   }
 
+  // Filter to only future showtimes
+  var now = new Date();
+  results = results.filter(function (film) {
+    var parts = film.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!parts) return true;
+    var hours = parseInt(parts[1], 10);
+    var minutes = parseInt(parts[2], 10);
+    var isPM = parts[3].toUpperCase() === 'PM';
+    if (isPM && hours !== 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+    var showtime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    return showtime > now;
+  });
+
   return results;
 }
 

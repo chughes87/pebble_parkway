@@ -17,6 +17,7 @@
     "FILM_TIME": 4,
     "FILM_IDX": 5
   },
+  "enableMultiJS": true,
   "capabilities": [],
   "resources": {
     "media": []
