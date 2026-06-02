@@ -1,6 +1,6 @@
-// PebbleKit JS — runs on the phone, bridges proxy server and watch
+// PebbleKit JS — runs on the phone, scrapes showtimes directly
 
-var PROXY_URL = "https://pebble-parkway.vercel.app/showtimes";
+var TNP_URL = "https://www.thenewparkway.com";
 
 // Message types (must match appinfo.json appKeys)
 var MSG_TYPE = 0;
@@ -17,19 +17,50 @@ var TYPE_DONE = 2;
 
 var films = [];
 var sendQueue = [];
-var sending = false;
+
+function parseShowtimes(html) {
+  var results = [];
+  var seen = {};
+
+  // Split on event containers: each has class "type-tribe_events"
+  var blocks = html.split('type-tribe_events');
+  for (var i = 1; i < blocks.length; i++) {
+    var block = blocks[i];
+
+    // Only include events with an IMDb link (real films)
+    var imdbMatch = block.match(/href="(https?:\/\/www\.imdb\.com\/title\/[^"]+)"/);
+    if (!imdbMatch) continue;
+
+    // Extract title from <h3...>...<span>TITLE</span>...</h3>
+    var titleMatch = block.match(/<h3[^>]*>\s*<span>([^<]+)<\/span>/);
+    if (!titleMatch) continue;
+    var title = titleMatch[1].trim();
+
+    // Extract time from .time-details: the time is plain text after the ticket link
+    var timeMatch = block.match(/time-details[\s\S]*?<\/a>\s*([\d]{1,2}:[\d]{2}\s*[ap]m)/i);
+    if (!timeMatch) continue;
+    var time = timeMatch[1].trim().toUpperCase();
+
+    var key = title + '|' + time;
+    if (seen[key]) continue;
+    seen[key] = true;
+
+    results.push({ title: title, time: time, imdb_url: imdbMatch[1] });
+  }
+
+  return results;
+}
 
 function fetchShowtimes() {
   var req = new XMLHttpRequest();
-  req.open("GET", PROXY_URL, true);
+  req.open("GET", TNP_URL, true);
   req.onload = function () {
     if (req.status === 200) {
-      var data = JSON.parse(req.responseText);
-      films = data.films || [];
-      console.log("Fetched " + films.length + " films");
+      films = parseShowtimes(req.responseText);
+      console.log("Parsed " + films.length + " films");
       sendFilmsToWatch();
     } else {
-      console.log("Proxy returned " + req.status);
+      console.log("Site returned " + req.status);
       sendDone(0);
     }
   };
@@ -46,7 +77,6 @@ function sendFilmsToWatch() {
     return;
   }
 
-  // Queue up each film as a message
   for (var i = 0; i < films.length; i++) {
     var msg = {};
     msg[MSG_TYPE] = TYPE_FILM_ITEM;
@@ -57,7 +87,6 @@ function sendFilmsToWatch() {
     sendQueue.push(msg);
   }
 
-  // Send "done" after all films
   var done = {};
   done[MSG_TYPE] = TYPE_DONE;
   done[FILM_COUNT] = films.length;
@@ -79,37 +108,30 @@ function sendDone(count) {
 
 function sendNext() {
   if (sendQueue.length === 0) {
-    sending = false;
     return;
   }
-  sending = true;
   var msg = sendQueue.shift();
   Pebble.sendAppMessage(msg, function () {
-    // ACK received, send next
     sendNext();
   }, function (e) {
     console.log("Send failed, retrying");
     sendQueue.unshift(msg);
-    // Retry after a short delay
     setTimeout(sendNext, 200);
   });
 }
 
-// When the phone JS environment is ready, fetch showtimes
 Pebble.addEventListener("ready", function () {
   console.log("PebbleKit JS ready");
   fetchShowtimes();
 });
 
-// Listen for messages from the watch (e.g. "open IMDb")
 Pebble.addEventListener("appmessage", function (e) {
   var payload = e.payload;
   if (payload[MSG_TYPE] === TYPE_OPEN_IMDB) {
     var index = payload[FILM_INDEX];
     if (index >= 0 && index < films.length) {
-      var url = films[index].imdb_url;
-      console.log("Opening IMDb: " + url);
-      Pebble.openURL(url);
+      console.log("Opening IMDb: " + films[index].imdb_url);
+      Pebble.openURL(films[index].imdb_url);
     }
   }
 });
