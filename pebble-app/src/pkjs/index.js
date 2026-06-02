@@ -1,6 +1,6 @@
 // PebbleKit JS — runs on the phone, scrapes showtimes directly
 
-var TNP_URL = "https://www.thenewparkway.com";
+var TNP_URL = "https://www.thenewparkway.com/upcomingevents/calendar/";
 
 // Message types (must match appinfo.json appKeys)
 var MSG_TYPE = 0;
@@ -18,26 +18,49 @@ var TYPE_DONE = 2;
 var films = [];
 var sendQueue = [];
 
+function decodeEntities(str) {
+  return str.replace(/&#8212;/g, '-').replace(/&#8211;/g, '-').replace(/&#038;/g, '&').replace(/&amp;/g, '&');
+}
+
+function getTodayHeader() {
+  var now = new Date();
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + (now.getDate() < 10 ? '0' : '') + now.getDate();
+}
+
 function parseShowtimes(html) {
   var results = [];
   var seen = {};
 
-  // Split on event containers: each has class "type-tribe_events"
-  var blocks = html.split('type-tribe_events');
+  // Find today's section by splitting on h2 date headers
+  var todayStr = getTodayHeader();
+  var sections = html.split(/<h2[^>]*>/);
+  var todaySection = null;
+  for (var i = 0; i < sections.length; i++) {
+    if (sections[i].indexOf(todayStr) >= 0 && sections[i].indexOf(todayStr) < 30) {
+      todaySection = sections[i];
+      break;
+    }
+  }
+  if (!todaySection) return results;
+
+  // Parse events from today's section using .sktime and .sktitle classes
+  var blocks = todaySection.split('type-tribe_events');
   for (var i = 1; i < blocks.length; i++) {
     var block = blocks[i];
 
-    // Only include events with an IMDb link (real films)
     var imdbMatch = block.match(/href="(https?:\/\/www\.imdb\.com\/title\/[^"]+)"/);
     if (!imdbMatch) continue;
 
-    // Extract title from <h3...>...<span>TITLE</span>...</h3>
-    var titleMatch = block.match(/<h3[^>]*>\s*<span>([^<]+)<\/span>/);
+    var titleMatch = block.match(/sktitle">([^<]+)</);
     if (!titleMatch) continue;
-    var title = titleMatch[1].trim();
+    var title = decodeEntities(titleMatch[1].trim());
 
-    // Extract time from .time-details: the time is plain text after the ticket link
-    var timeMatch = block.match(/time-details[\s\S]*?<\/a>\s*([\d]{1,2}:[\d]{2}\s*[ap]m)/i);
+    // Skip cancelled events
+    if (title.indexOf('CANCELLED') >= 0) continue;
+
+    var timeMatch = block.match(/sktime">([^<]+)</);
     if (!timeMatch) continue;
     var time = timeMatch[1].trim().toUpperCase();
 

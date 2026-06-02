@@ -1,3 +1,2 @@
 node_modules/
-pebble-app/build/
-pebble-app/.lock-waf_*
+**/.lock-waf_*
