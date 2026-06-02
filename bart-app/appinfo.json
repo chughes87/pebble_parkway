@@ -1,0 +1,26 @@
+{
+  "uuid": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+  "shortName": "BART",
+  "longName": "19th St BART Departures",
+  "companyName": "chughes",
+  "versionLabel": "1.0.0",
+  "sdkVersion": "3",
+  "targetPlatforms": ["aplite", "basalt", "chalk", "diorite", "emery"],
+  "watchapp": {
+    "watchface": false
+  },
+  "enableMultiJS": true,
+  "appKeys": {
+    "MSG_TYPE": 0,
+    "TRAIN_INDEX": 1,
+    "TRAIN_COUNT": 2,
+    "TRAIN_DEST": 3,
+    "TRAIN_MINS": 4,
+    "TRAIN_COLOR": 5,
+    "TRAIN_IDX": 6
+  },
+  "capabilities": [],
+  "resources": {
+    "media": []
+  }
+}
