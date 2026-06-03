@@ -19,7 +19,7 @@
     "TRAIN_COLOR": 5,
     "TRAIN_IDX": 6
   },
-  "capabilities": [],
+  "capabilities": ["configurable"],
   "resources": {
     "media": []
   }
