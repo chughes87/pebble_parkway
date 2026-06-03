@@ -1,7 +1,7 @@
 // PebbleKit JS — fetches real-time BART departures
 
 var BART_API = "https://api.bart.gov/api/etd.aspx?cmd=etd&key=MW9S-E7SL-26DU-VV8V&json=y&orig=";
-var DEFAULT_STATION = "19TH";
+var DEFAULT_STATION = null;
 
 var MSG_TYPE = 0;
 var TRAIN_INDEX = 1;
@@ -18,12 +18,15 @@ var TYPE_REFRESH = 2;
 var sendQueue = [];
 
 function getStation() {
-  var saved = localStorage.getItem("bartStation");
-  return saved || DEFAULT_STATION;
+  return localStorage.getItem("bartStation") || DEFAULT_STATION;
 }
 
 function fetchDepartures() {
   var station = getStation();
+  if (!station) {
+    sendNoStation();
+    return;
+  }
   var req = new XMLHttpRequest();
   req.open("GET", BART_API + station, true);
   req.onload = function () {
@@ -96,6 +99,22 @@ function sendTrainsToWatch(trains) {
   done[TRAIN_COUNT] = trains.length;
   sendQueue.push(done);
 
+  sendNext();
+}
+
+function sendNoStation() {
+  var msg = {};
+  msg[MSG_TYPE] = TYPE_TRAIN_ITEM;
+  msg[TRAIN_COUNT] = 1;
+  msg[TRAIN_IDX] = 0;
+  msg[TRAIN_DEST] = "Open settings to";
+  msg[TRAIN_MINS] = "pick a station";
+  msg[TRAIN_COLOR] = "";
+  sendQueue.push(msg);
+  var done = {};
+  done[MSG_TYPE] = TYPE_DONE;
+  done[TRAIN_COUNT] = 1;
+  sendQueue.push(done);
   sendNext();
 }
 
