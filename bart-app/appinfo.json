@@ -5,7 +5,7 @@
   "companyName": "chughes",
   "versionLabel": "1.0.0",
   "sdkVersion": "3",
-  "targetPlatforms": ["aplite", "basalt", "chalk", "diorite", "emery"],
+  "targetPlatforms": ["aplite"],
   "watchapp": {
     "watchface": false
   },
