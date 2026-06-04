@@ -1,7 +1,7 @@
 // PebbleKit JS — runs on the phone, scrapes showtimes directly
 
 var TNP_URL = "https://www.thenewparkway.com/upcomingevents/calendar/";
-var OMDB_API = "http://www.omdbapi.com/?apikey=9ffd39ff&i=";
+var OMDB_API = "https://www.omdbapi.com/?apikey=9ffd39ff&i=";
 
 var MSG_TYPE = 0;
 var FILM_INDEX = 1;

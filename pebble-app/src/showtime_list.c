@@ -1,5 +1,6 @@
 #include "showtime_list.h"
 #include "messaging.h"
+#include "detail_view.h"
 
 static MenuLayer *s_menu_layer;
 static StatusBarLayer *s_status_bar;
@@ -28,6 +29,12 @@ static void menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cel
 
 static void menu_select_click(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   if (s_loading || s_film_count == 0) return;
+  // Show detail view with loading text immediately
+  snprintf(s_detail.title, DETAIL_TITLE_LEN, "%s", s_films[cell_index->row].title);
+  snprintf(s_detail.rating, DETAIL_FIELD_LEN, "Loading...");
+  s_detail.runtime[0] = '\0';
+  s_detail.desc[0] = '\0';
+  detail_view_push();
   messaging_request_details(cell_index->row);
 }
 

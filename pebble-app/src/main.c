@@ -10,7 +10,7 @@ static void on_data_update(void) {
 }
 
 static void on_detail_received(void) {
-  detail_view_push();
+  detail_view_update();
 }
 
 static void main_window_load(Window *window) {
