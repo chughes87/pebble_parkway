@@ -3,7 +3,7 @@
   "shortName": "Parkway",
   "longName": "New Parkway Showtimes",
   "companyName": "chughes",
-  "versionLabel": "1.0.0",
+  "versionLabel": "1.1.0",
   "sdkVersion": "3",
   "targetPlatforms": ["aplite"],
   "watchapp": {
