@@ -1,19 +1,23 @@
 // PebbleKit JS — runs on the phone, scrapes showtimes directly
 
 var TNP_URL = "https://www.thenewparkway.com/upcomingevents/calendar/";
+var OMDB_API = "http://www.omdbapi.com/?apikey=9ffd39ff&i=";
 
-// Message types (must match appinfo.json appKeys)
 var MSG_TYPE = 0;
 var FILM_INDEX = 1;
 var FILM_COUNT = 2;
 var FILM_TITLE = 3;
 var FILM_TIME = 4;
 var FILM_IDX = 5;
+var DETAIL_TITLE = 6;
+var DETAIL_RATING = 7;
+var DETAIL_RUNTIME = 8;
+var DETAIL_DESC = 9;
 
-// MSG_TYPE values
 var TYPE_FILM_ITEM = 0;
-var TYPE_OPEN_IMDB = 1;
+var TYPE_GET_DETAILS = 1;
 var TYPE_DONE = 2;
+var TYPE_DETAIL_DATA = 3;
 
 var films = [];
 var sendQueue = [];
@@ -33,7 +37,6 @@ function parseShowtimes(html) {
   var results = [];
   var seen = {};
 
-  // Find today's section by splitting on h2 date headers
   var todayStr = getTodayHeader();
   var sections = html.split(/<h2[^>]*>/);
   var todaySection = null;
@@ -45,7 +48,6 @@ function parseShowtimes(html) {
   }
   if (!todaySection) return results;
 
-  // Parse events from today's section using .sktime and .sktitle classes
   var blocks = todaySection.split('type-tribe_events');
   for (var i = 1; i < blocks.length; i++) {
     var block = blocks[i];
@@ -57,7 +59,6 @@ function parseShowtimes(html) {
     if (!titleMatch) continue;
     var title = decodeEntities(titleMatch[1].trim());
 
-    // Skip cancelled events
     if (title.indexOf('CANCELLED') >= 0) continue;
 
     var timeMatch = block.match(/sktime">([^<]+)</);
@@ -68,10 +69,13 @@ function parseShowtimes(html) {
     if (seen[key]) continue;
     seen[key] = true;
 
-    results.push({ title: title, time: time, imdb_url: imdbMatch[1] });
+    // Extract IMDb ID from URL
+    var idMatch = imdbMatch[1].match(/tt\d+/);
+    var imdbId = idMatch ? idMatch[0] : '';
+
+    results.push({ title: title, time: time, imdb_url: imdbMatch[1], imdb_id: imdbId });
   }
 
-  // Filter to only future showtimes
   var now = new Date();
   results = results.filter(function (film) {
     var parts = film.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
@@ -104,6 +108,34 @@ function fetchShowtimes() {
   req.onerror = function () {
     console.log("Fetch failed");
     sendDone(0);
+  };
+  req.send();
+}
+
+function fetchDetails(index) {
+  var film = films[index];
+  if (!film || !film.imdb_id) return;
+
+  var req = new XMLHttpRequest();
+  req.open("GET", OMDB_API + film.imdb_id, true);
+  req.onload = function () {
+    if (req.status === 200) {
+      var data = JSON.parse(req.responseText);
+      if (data.Response === "True") {
+        var rating = data.imdbRating ? data.imdbRating + "/10" : "N/A";
+        var runtime = data.Runtime || "N/A";
+        var desc = data.Plot || "No description available.";
+
+        var msg = {};
+        msg[MSG_TYPE] = TYPE_DETAIL_DATA;
+        msg[DETAIL_TITLE] = data.Title.substring(0, 63);
+        msg[DETAIL_RATING] = rating.substring(0, 31);
+        msg[DETAIL_RUNTIME] = runtime.substring(0, 31);
+        msg[DETAIL_DESC] = desc.substring(0, 255);
+        sendQueue.push(msg);
+        sendNext();
+      }
+    }
   };
   req.send();
 }
@@ -164,11 +196,9 @@ Pebble.addEventListener("ready", function () {
 
 Pebble.addEventListener("appmessage", function (e) {
   var payload = e.payload;
-  if (payload[MSG_TYPE] === TYPE_OPEN_IMDB) {
+  if (payload[MSG_TYPE] === TYPE_GET_DETAILS) {
     var index = payload[FILM_INDEX];
-    if (index >= 0 && index < films.length) {
-      console.log("Opening IMDb: " + films[index].imdb_url);
-      Pebble.openURL(films[index].imdb_url);
-    }
+    console.log("Details requested for film " + index);
+    fetchDetails(index);
   }
 });

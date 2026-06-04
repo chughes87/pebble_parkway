@@ -15,7 +15,11 @@
     "FILM_COUNT": 2,
     "FILM_TITLE": 3,
     "FILM_TIME": 4,
-    "FILM_IDX": 5
+    "FILM_IDX": 5,
+    "DETAIL_TITLE": 6,
+    "DETAIL_RATING": 7,
+    "DETAIL_RUNTIME": 8,
+    "DETAIL_DESC": 9
   },
   "enableMultiJS": true,
   "capabilities": [],

@@ -1,11 +1,16 @@
 #include <pebble.h>
 #include "messaging.h"
 #include "showtime_list.h"
+#include "detail_view.h"
 
 static Window *s_main_window;
 
 static void on_data_update(void) {
   showtime_list_reload();
+}
+
+static void on_detail_received(void) {
+  detail_view_push();
 }
 
 static void main_window_load(Window *window) {
@@ -24,7 +29,7 @@ static void init(void) {
   });
   window_stack_push(s_main_window, true);
 
-  messaging_init(on_data_update);
+  messaging_init(on_data_update, on_detail_received);
 }
 
 static void deinit(void) {
