@@ -29,24 +29,18 @@ static void menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cel
 
 static void menu_select_click(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
   if (s_loading || s_film_count == 0) return;
-  // Show detail view with loading text immediately
-  snprintf(s_detail.title, DETAIL_TITLE_LEN, "%s", s_films[cell_index->row].title);
-  snprintf(s_detail.rating, DETAIL_FIELD_LEN, "Loading...");
-  s_detail.runtime[0] = '\0';
-  s_detail.desc[0] = '\0';
-  detail_view_push();
-  messaging_request_details(cell_index->row);
+  int idx = cell_index->row;
+  if (idx >= s_film_count) return;
+  detail_view_show(&s_films[idx]);
 }
 
 void showtime_list_init(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  // Status bar showing date
   s_status_bar = status_bar_layer_create();
   layer_add_child(window_layer, status_bar_layer_get_layer(s_status_bar));
 
-  // Menu layer below status bar
   GRect menu_bounds = GRect(0, STATUS_BAR_LAYER_HEIGHT, bounds.size.w,
                             bounds.size.h - STATUS_BAR_LAYER_HEIGHT);
   s_menu_layer = menu_layer_create(menu_bounds);

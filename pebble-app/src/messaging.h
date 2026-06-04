@@ -14,7 +14,6 @@
 #define DETAIL_DESC    9
 
 #define TYPE_FILM_ITEM    0
-#define TYPE_GET_DETAILS  1
 #define TYPE_DONE         2
 #define TYPE_DETAIL_DATA  3
 
@@ -28,20 +27,16 @@
 typedef struct {
   char title[TITLE_LEN];
   char time[TIME_LEN];
-} Film;
-
-typedef struct {
-  char title[DETAIL_TITLE_LEN];
+  char detail_title[DETAIL_TITLE_LEN];
   char rating[DETAIL_FIELD_LEN];
   char runtime[DETAIL_FIELD_LEN];
   char desc[DETAIL_DESC_LEN];
-} FilmDetail;
+  bool has_detail;
+} Film;
 
 extern Film s_films[];
 extern int s_film_count;
 extern bool s_loading;
-extern FilmDetail s_detail;
 
-void messaging_init(void (*on_update)(void), void (*on_detail)(void));
+void messaging_init(void (*on_update)(void));
 void messaging_deinit(void);
-void messaging_request_details(int index);

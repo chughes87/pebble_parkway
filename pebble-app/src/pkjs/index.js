@@ -15,7 +15,6 @@ var DETAIL_RUNTIME = 8;
 var DETAIL_DESC = 9;
 
 var TYPE_FILM_ITEM = 0;
-var TYPE_GET_DETAILS = 1;
 var TYPE_DONE = 2;
 var TYPE_DETAIL_DATA = 3;
 
@@ -69,11 +68,10 @@ function parseShowtimes(html) {
     if (seen[key]) continue;
     seen[key] = true;
 
-    // Extract IMDb ID from URL
     var idMatch = imdbMatch[1].match(/tt\d+/);
     var imdbId = idMatch ? idMatch[0] : '';
 
-    results.push({ title: title, time: time, imdb_url: imdbMatch[1], imdb_id: imdbId });
+    results.push({ title: title, time: time, imdb_id: imdbId });
   }
 
   var now = new Date();
@@ -112,7 +110,19 @@ function fetchShowtimes() {
   req.send();
 }
 
-function fetchDetails(index) {
+// Fetch OMDB details for each film and send to watch
+function fetchAllDetails() {
+  // Deduplicate by imdb_id so we don't fetch the same movie twice
+  var seen = {};
+  for (var i = 0; i < films.length; i++) {
+    var id = films[i].imdb_id;
+    if (!id || seen[id]) continue;
+    seen[id] = true;
+    fetchDetail(i);
+  }
+}
+
+function fetchDetail(index) {
   var film = films[index];
   if (!film || !film.imdb_id) return;
 
@@ -124,15 +134,21 @@ function fetchDetails(index) {
       if (data.Response === "True") {
         var rating = data.imdbRating ? data.imdbRating + "/10" : "N/A";
         var runtime = data.Runtime || "N/A";
-        var desc = data.Plot || "No description available.";
+        var desc = data.Plot || "No description.";
 
-        var msg = {};
-        msg[MSG_TYPE] = TYPE_DETAIL_DATA;
-        msg[DETAIL_TITLE] = data.Title.substring(0, 63);
-        msg[DETAIL_RATING] = rating.substring(0, 31);
-        msg[DETAIL_RUNTIME] = runtime.substring(0, 31);
-        msg[DETAIL_DESC] = desc.substring(0, 255);
-        sendQueue.push(msg);
+        // Send detail for every film index with this imdb_id
+        for (var j = 0; j < films.length; j++) {
+          if (films[j].imdb_id === film.imdb_id) {
+            var msg = {};
+            msg[MSG_TYPE] = TYPE_DETAIL_DATA;
+            msg[FILM_IDX] = j;
+            msg[DETAIL_TITLE] = data.Title.substring(0, 63);
+            msg[DETAIL_RATING] = rating.substring(0, 31);
+            msg[DETAIL_RUNTIME] = runtime.substring(0, 31);
+            msg[DETAIL_DESC] = desc.substring(0, 255);
+            sendQueue.push(msg);
+          }
+        }
         sendNext();
       }
     }
@@ -162,6 +178,9 @@ function sendFilmsToWatch() {
   sendQueue.push(done);
 
   sendNext();
+
+  // Start fetching details in background — they'll queue up
+  fetchAllDetails();
 }
 
 function sendDone(count) {
@@ -192,13 +211,4 @@ function sendNext() {
 Pebble.addEventListener("ready", function () {
   console.log("PebbleKit JS ready");
   fetchShowtimes();
-});
-
-Pebble.addEventListener("appmessage", function (e) {
-  var payload = e.payload;
-  if (payload[MSG_TYPE] === TYPE_GET_DETAILS) {
-    var index = payload[FILM_INDEX];
-    console.log("Details requested for film " + index);
-    fetchDetails(index);
-  }
 });
