@@ -27,8 +27,7 @@ static void menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cel
 }
 
 static void menu_select_click(MenuLayer *menu_layer, MenuIndex *cell_index, void *data) {
-  messaging_request_refresh();
-  vibes_short_pulse();
+  // No-op: watch-to-phone messaging not supported on this hardware
 }
 
 void departure_list_init(Window *window) {
